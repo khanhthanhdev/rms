@@ -33,13 +33,13 @@
 				throw new Error('Failed to fetch teams');
 			}
 			const data = await response.json();
-			
+
 			teams = data.map((team: Team) => ({
 				...team,
 				name: team.team_name || team.name,
 				plan: team.plan || 'Active' // Default plan
 			}));
-			
+
 			// Set first team as active if none selected
 			if (teams.length > 0 && !activeTeam) {
 				activeTeam = teams[0];
@@ -58,9 +58,9 @@
 			const response = await fetch('/api/teams/switch', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ teamId: team.id }),
+				body: JSON.stringify({ teamId: team.id })
 			});
 
 			if (!response.ok) {
@@ -75,15 +75,18 @@
 	}
 
 	onMount(() => {
-		fetchTeams();
-		
+		// Only fetch teams if we're in the browser
+		if (typeof window !== 'undefined') {
+			fetchTeams();
+		}
+
 		// Fall back to propTeams if provided (for backward compatibility)
 		if (propTeams && propTeams.length > 0) {
-			teams = propTeams.map(team => ({
+			teams = propTeams.map((team) => ({
 				...team,
 				id: Math.random().toString(),
 				role: 'TEAM_MEMBER' as const,
-				team_name: team.name,
+				team_name: team.name
 			}));
 			activeTeam = teams[0];
 			loading = false;
@@ -139,16 +142,16 @@
 					</Sidebar.MenuButton>
 				{/snippet}
 			</DropdownMenu.Trigger>
-				<DropdownMenu.Content
-					class="w-(--bits-dropdown-menu-anchor-width) min-w-56 rounded-lg"
-					align="start"
-					side={sidebar.isMobile ? 'bottom' : 'right'}
-					sideOffset={4}
+			<DropdownMenu.Content
+				class="w-(--bits-dropdown-menu-anchor-width) min-w-56 rounded-lg"
+				align="start"
+				side={sidebar.isMobile ? 'bottom' : 'right'}
+				sideOffset={4}
 			>
 				<DropdownMenu.Label class="text-xs text-muted-foreground">
 					{loading ? 'Loading teams...' : `Teams (${teams.length})`}
 				</DropdownMenu.Label>
-				
+
 				{#if loading}
 					<DropdownMenu.Item disabled class="gap-2 p-2">
 						<div class="flex size-6 items-center justify-center rounded-md border">
@@ -181,21 +184,23 @@
 							class={`gap-2 p-2 ${activeTeam?.id === team.id ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`}
 						>
 							<div class="flex size-6 items-center justify-center rounded-md border">
-								<div class="text-xs font-bold bg-primary text-primary-foreground rounded w-full h-full flex items-center justify-center">
+								<div
+									class="flex h-full w-full items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground"
+								>
 									{team.name.charAt(0).toUpperCase()}
 								</div>
-				</div>
-				<div class="flex flex-col">
-					<span class="font-medium">{team.name}</span>
-					<span class="text-xs text-muted-foreground">
-						{team.role.replace('_', ' ').toLowerCase()}
-					</span>
-				</div>
-				<DropdownMenu.Shortcut>⌘{index + 1}</DropdownMenu.Shortcut>
-			</DropdownMenu.Item>
-		{/each}
-	{/if}
-				
+							</div>
+							<div class="flex flex-col">
+								<span class="font-medium">{team.name}</span>
+								<span class="text-xs text-muted-foreground">
+									{team.role.replace('_', ' ').toLowerCase()}
+								</span>
+							</div>
+							<DropdownMenu.Shortcut>⌘{index + 1}</DropdownMenu.Shortcut>
+						</DropdownMenu.Item>
+					{/each}
+				{/if}
+
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item class="gap-2 p-2" hidden={!!loading}>
 					<div class="flex size-6 items-center justify-center rounded-md border bg-transparent">
@@ -217,13 +222,27 @@
 		background: currentColor;
 		animation: loading 1.4s infinite ease-in-out both;
 	}
-	
-	.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-	.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-	.loading-dots span:nth-child(3) { animation-delay: 0; }
-	
+
+	.loading-dots span:nth-child(1) {
+		animation-delay: -0.32s;
+	}
+	.loading-dots span:nth-child(2) {
+		animation-delay: -0.16s;
+	}
+	.loading-dots span:nth-child(3) {
+		animation-delay: 0;
+	}
+
 	@keyframes loading {
-		0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-		40% { transform: scale(1); opacity: 1; }
+		0%,
+		80%,
+		100% {
+			transform: scale(0);
+			opacity: 0.5;
+		}
+		40% {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 </style>

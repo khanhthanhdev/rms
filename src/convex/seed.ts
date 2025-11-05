@@ -21,6 +21,7 @@ export const seedUsers = mutation({
                     name: "Super Admin",
                     role: "ADMIN",
                     data: {
+                        appRole: "ADMIN",
                         userType: "ORG",
                     }
                 }

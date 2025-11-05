@@ -4,9 +4,13 @@ import type { QueryCtx, MutationCtx } from '../_generated/server';
 import {
 	ADMIN,
 	COMMON,
+	HEAD_REFEREE,
+	QUEUER,
+	SCORE_KEEPER,
 	TEAM_LEADER,
 	TEAM_MEMBER,
 	TEAM_MENTOR,
+	TSO,
 	betterAuthComponent,
 	statement
 } from '../auth';
@@ -17,7 +21,11 @@ const ROLE_MAP = {
 	TEAM_MENTOR,
 	TEAM_LEADER,
 	TEAM_MEMBER,
-	COMMON
+	COMMON,
+	TSO,
+	HEAD_REFEREE,
+	SCORE_KEEPER,
+	QUEUER
 } as const satisfies Record<string, Role>;
 
 type RoleMap = typeof ROLE_MAP;
@@ -33,7 +41,7 @@ export type Permission = PermissionFromStatements<typeof statement>;
 
 export type TeamRole = Extract<RoleName, 'TEAM_MENTOR' | 'TEAM_LEADER' | 'TEAM_MEMBER' | 'COMMON'>;
 
-export type OrgRole = Extract<RoleName, 'ADMIN'>;
+export type OrgRole = Extract<RoleName, 'ADMIN' | 'TSO' | 'HEAD_REFEREE' | 'SCORE_KEEPER' | 'QUEUER'>;
 
 /**
  * Scope for permission checks
@@ -57,6 +65,20 @@ const toArray = <T>(value: T | T[] | null | undefined): T[] => {
 	return Array.isArray(value) ? value : [value];
 };
 
+const ROLE_ALIAS_MAP: Record<string, RoleName> = {
+	TOURNAMENT_SCORING_OFFICER: 'TSO',
+	TSO: 'TSO',
+	QUEUE_MANAGER: 'QUEUER',
+	QUEUER: 'QUEUER',
+	ADMIN: 'ADMIN',
+	TEAM_MENTOR: 'TEAM_MENTOR',
+	TEAM_LEADER: 'TEAM_LEADER',
+	TEAM_MEMBER: 'TEAM_MEMBER',
+	COMMON: 'COMMON',
+	HEAD_REFEREE: 'HEAD_REFEREE',
+	SCORE_KEEPER: 'SCORE_KEEPER'
+};
+
 const normalizeRoleKey = (rawRole: string | null | undefined): RoleName | null => {
 	if (!rawRole) {
 		return null;
@@ -67,13 +89,13 @@ const normalizeRoleKey = (rawRole: string | null | undefined): RoleName | null =
 		return null;
 	}
 
-	if (hasOwn(ROLE_MAP, trimmed)) {
-		return trimmed as RoleName;
+	if (hasOwn(ROLE_ALIAS_MAP, trimmed)) {
+		return ROLE_ALIAS_MAP[trimmed];
 	}
 
 	const normalized = trimmed.replace(/-/g, '_').toUpperCase();
-	if (hasOwn(ROLE_MAP, normalized)) {
-		return normalized as RoleName;
+	if (hasOwn(ROLE_ALIAS_MAP, normalized)) {
+		return ROLE_ALIAS_MAP[normalized];
 	}
 
 	return null;
@@ -163,29 +185,60 @@ const collectUserRoleNames = async (
 		return roleNames;
 	}
 
+	const appRole = normalizeRoleKey(user.appRole as string | null | undefined);
+	if (appRole) {
+		roleNames.add(appRole);
+	}
+
 	const authUser = await loadAuthUserByAuthId(ctx, user.authId);
-	if (!authUser) {
-		return roleNames;
-	}
 
-	const globalRoleCandidates: string[] = [];
+	// Collect baseline user roles from dedicated table
+	const baseRoles = await ctx.db
+		.query('user_roles')
+		.withIndex('by_user', (q) => q.eq('user_id', userId))
+		.collect();
 
-	if ('role' in authUser) {
-		globalRoleCandidates.push(
-			...toArray<string>(authUser.role as string | string[] | null | undefined)
-		);
-	}
-
-	if ('roles' in authUser) {
-		globalRoleCandidates.push(
-			...toArray<string>(authUser.roles as string | string[] | null | undefined)
-		);
-	}
-
-	for (const rawRole of globalRoleCandidates) {
-		const resolved = normalizeRoleKey(rawRole);
+	for (const record of baseRoles) {
+		const resolved = normalizeRoleKey(record.role);
 		if (resolved) {
 			roleNames.add(resolved);
+		}
+	}
+
+	// Organization-level roles from dedicated table
+	const orgRoles = await ctx.db
+		.query('org_user_roles')
+		.withIndex('by_user', (q) => q.eq('user_id', userId))
+		.collect();
+
+	for (const record of orgRoles) {
+		const resolved = normalizeRoleKey(record.role);
+		if (resolved) {
+			roleNames.add(resolved);
+		}
+	}
+
+	// Fallback: include roles from Better Auth user document for backward compatibility
+	if (authUser) {
+		const globalRoleCandidates: string[] = [];
+
+		if ('role' in authUser) {
+			globalRoleCandidates.push(
+				...toArray<string>(authUser.role as string | string[] | null | undefined)
+			);
+		}
+
+		if ('roles' in authUser) {
+			globalRoleCandidates.push(
+				...toArray<string>(authUser.roles as string | string[] | null | undefined)
+			);
+		}
+
+		for (const rawRole of globalRoleCandidates) {
+			const resolved = normalizeRoleKey(rawRole);
+			if (resolved) {
+				roleNames.add(resolved);
+			}
 		}
 	}
 

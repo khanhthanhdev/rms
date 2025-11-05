@@ -70,6 +70,7 @@ export declare const components: {
           input:
             | {
                 data: {
+                  appRole?: null | string;
                   banExpires?: null | number;
                   banReason?: null | string;
                   banned?: null | boolean;
@@ -191,6 +192,7 @@ export declare const components: {
                     | "banReason"
                     | "banExpires"
                     | "userType"
+                    | "appRole"
                     | "id";
                   operator?:
                     | "lt"
@@ -468,6 +470,7 @@ export declare const components: {
                     | "banReason"
                     | "banExpires"
                     | "userType"
+                    | "appRole"
                     | "id";
                   operator?:
                     | "lt"
@@ -811,6 +814,7 @@ export declare const components: {
             | {
                 model: "user";
                 update: {
+                  appRole?: null | string;
                   banExpires?: null | number;
                   banReason?: null | string;
                   banned?: null | boolean;
@@ -839,6 +843,7 @@ export declare const components: {
                     | "banReason"
                     | "banExpires"
                     | "userType"
+                    | "appRole"
                     | "id";
                   operator?:
                     | "lt"
@@ -1160,6 +1165,7 @@ export declare const components: {
             | {
                 model: "user";
                 update: {
+                  appRole?: null | string;
                   banExpires?: null | number;
                   banReason?: null | string;
                   banned?: null | boolean;
@@ -1188,6 +1194,7 @@ export declare const components: {
                     | "banReason"
                     | "banExpires"
                     | "userType"
+                    | "appRole"
                     | "id";
                   operator?:
                     | "lt"

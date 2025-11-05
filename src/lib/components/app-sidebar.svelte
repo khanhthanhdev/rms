@@ -26,6 +26,7 @@
 	// Get current user from Convex
 	const currentUserResponse = useQuery(api.auth.getCurrentUser, {});
 	let user = $derived(currentUserResponse.data);
+	const isAdmin = $derived(Boolean(user?.orgRoles?.includes?.('ADMIN')));
 
 	const userData = $derived({
 		name: user?.name || 'User',
@@ -154,7 +155,7 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain items={data.navMain} />
-		{#if (user as unknown as { role?: string } | null)?.role === 'admin'}
+		{#if isAdmin}
 			<NavAdmin items={data.admin} />
 		{/if}
 		<NavSecondary items={data.navSecondary} class="mt-auto" />

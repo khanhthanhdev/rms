@@ -15,14 +15,49 @@ type BetterAuthUseApi = Parameters<typeof createClient>[0];
 
 const betterAuthComponent = (components as { betterAuth: BetterAuthUseApi }).betterAuth;
 
+export const APP_ROLE_VALUES = [
+	'ADMIN',
+	'TSO',
+	'HEAD_REFEREE',
+	'SCORE_KEEPER',
+	'QUEUER',
+	'TEAM_MENTOR',
+	'TEAM_LEADER',
+	'TEAM_MEMBER',
+	'COMMON'
+] as const;
+
+export type AppRole = (typeof APP_ROLE_VALUES)[number];
+
+const APP_ROLE_SET = new Set<AppRole>(APP_ROLE_VALUES);
+
+export const DEFAULT_APP_ROLE: AppRole = 'COMMON';
+
+export const normalizeAppRole = (value: string | null | undefined): AppRole | null => {
+	if (!value) {
+		return null;
+	}
+
+	const normalized = value.trim().replace(/-/g, '_').toUpperCase();
+	return APP_ROLE_SET.has(normalized as AppRole) ? (normalized as AppRole) : null;
+};
+
+export const resolveAppRole = (
+	value: string | null | undefined,
+	fallback: AppRole = DEFAULT_APP_ROLE
+): AppRole => {
+	return normalizeAppRole(value) ?? fallback;
+};
+
 export { betterAuthComponent };
 
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
 export const authComponent = createClient<DataModel, typeof authSchema>(betterAuthComponent, {
 	local: {
-		schema: authSchema
-	}
+		schema: authSchema,
+	},
+	verbose: true
 });
 
 // ==================== Access Control Configuration ====================
@@ -67,9 +102,53 @@ export const ac = createAccessControl(statement);
 
 /**
  * Global admin role with full access to all resources
- * This replaces the org-level roles like TOURNAMENT_SCORING_OFFICER, HEAD_REFEREE, etc.
+ * This replaces the org-level roles like TSO, HEAD_REFEREE, etc.
  */
 export const ADMIN = ac.newRole(cloneStatements(statement));
+
+export const TSO = ac.newRole({
+	tournaments: [
+		'view',
+		'participate',
+		'join',
+		'manage_participation',
+		'create',
+		'update',
+		'delete',
+		'manage_all'
+	],
+	matches: ['view', 'create', 'update', 'delete', 'manage_all'],
+	fields: ['manage'],
+	stages: ['view', 'manage'],
+	referees: ['assign'],
+	scoring_profiles: ['manage'],
+	queue: ['manage'],
+	scores: ['edit_draft', 'finalize'],
+	penalties: ['manage'],
+	audience: ['control']
+});
+
+export const HEAD_REFEREE = ac.newRole({
+	tournaments: ['view'],
+	matches: ['view', 'create', 'update', 'manage_all'],
+	referees: ['assign'],
+	queue: ['manage'],
+	scores: ['edit_draft', 'finalize'],
+	penalties: ['manage']
+});
+
+export const SCORE_KEEPER = ac.newRole({
+	tournaments: ['view'],
+	matches: ['view'],
+	scores: ['edit_draft', 'finalize'],
+	penalties: ['manage']
+});
+
+export const QUEUER = ac.newRole({
+	tournaments: ['view'],
+	matches: ['view'],
+	queue: ['manage']
+});
 
 /**
  * Team-scoped roles (mapped to Better Auth organization roles)
@@ -129,17 +208,34 @@ export const createAuth = (
 			user: {
 				create: {
 					before: async (data) => {
-						// Use the role from data if provided, otherwise default to COMMON
-						const role = data.role || 'COMMON';
 						const userType = data.userType || 'REGULAR';
+						const appRole = resolveAppRole(
+							(data as { appRole?: string | null | undefined }).appRole
+						);
 
 						return {
 							data: {
 								...data,
 								userType,
-								role
+								appRole
 							}
 						};
+					}
+				},
+				update: {
+					before: async (data) => {
+						if ('appRole' in data) {
+							return {
+								data: {
+									...data,
+									appRole: resolveAppRole(
+										(data as { appRole?: string | null | undefined }).appRole
+									)
+								}
+							};
+						}
+
+						return { data };
 					}
 				}
 			}
@@ -153,7 +249,7 @@ export const createAuth = (
 					type: 'string',
 					required: false
 				},
-				role: {
+				appRole: {
 					type: 'string',
 					required: false
 				}
@@ -330,7 +426,52 @@ export const getCurrentUser = query({
 	args: {},
 	handler: async (ctx) => {
 		try {
-			return await authComponent.getAuthUser(ctx);
+			const authUser = await authComponent.getAuthUser(ctx);
+			if (!authUser) {
+				return null;
+			}
+
+			const authUserId = authUser.userId || authUser._id;
+
+			const appUser = await ctx.db
+				.query('users')
+				.withIndex('authId', (q) => q.eq('authId', authUserId))
+				.unique();
+
+			const userRoleRecords = appUser
+				? await ctx.db
+						.query('user_roles')
+						.withIndex('by_user', (q) => q.eq('user_id', appUser._id))
+						.collect()
+				: [];
+			const orgRoleRecords = appUser
+				? await ctx.db
+						.query('org_user_roles')
+						.withIndex('by_user', (q) => q.eq('user_id', appUser._id))
+						.collect()
+				: [];
+
+			const userRoles = userRoleRecords.length
+				? userRoleRecords.map((record) => record.role)
+				: ['COMMON'];
+			const orgRoles = orgRoleRecords.map((record) => record.role);
+
+			const resolvedAppRole =
+				(appUser ? normalizeAppRole(appUser.appRole ?? null) : null) ??
+				normalizeAppRole(
+					(authUser as { appRole?: string | null | undefined }).appRole ?? undefined
+				) ??
+				normalizeAppRole(authUser.role as string | null | undefined) ??
+				DEFAULT_APP_ROLE;
+
+			return {
+				...authUser,
+				appRole: resolvedAppRole,
+				userRoles,
+				orgRoles,
+				// Also expose role for Better Auth compatibility
+				role: authUser.role
+			};
 		} catch {
 			// Return null when unauthenticated
 			return null;

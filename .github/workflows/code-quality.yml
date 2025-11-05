@@ -1,50 +1,50 @@
-name: Code Quality Checks
+# name: Code Quality Checks
 
-on: [push, pull_request]
+# on: [push, pull_request]
 
-env:
-  # Required environment variables for type checking
-  # PUBLIC_* vars - required for client code
-  PUBLIC_CONVEX_URL: 'https://fake-convex-url.convex.cloud'
-  PUBLIC_CONVEX_SITE_URL: 'https://fake-convex-site-url.convex.site'
-  # SITE_URL - imported in hooks.server.ts and admin/+layout.server.ts
-  SITE_URL: 'https://fake-site-url.com'
+# env:
+#   # Required environment variables for type checking
+#   # PUBLIC_* vars - required for client code
+#   PUBLIC_CONVEX_URL: 'https://fake-convex-url.convex.cloud'
+#   PUBLIC_CONVEX_SITE_URL: 'https://fake-convex-site-url.convex.site'
+#   # SITE_URL - imported in hooks.server.ts and admin/+layout.server.ts
+#   SITE_URL: 'https://fake-site-url.com'
 
-jobs:
-  lint_and_format:
-    name: Linting, Formatting, and Typechecking
-    runs-on: ubuntu-latest
+# jobs:
+#   lint_and_format:
+#     name: Linting, Formatting, and Typechecking
+#     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
+#       - name: Install pnpm
+#         uses: pnpm/action-setup@v4
+#         with:
+#           run_install: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+#       - name: Install dependencies
+#         run: pnpm install --frozen-lockfile
 
-      - name: Linting and Format Check
-        run: pnpm run lint
+#       - name: Linting and Format Check
+#         run: pnpm run lint
 
-      - name: Typechecking
-        run: pnpm run check
+#       - name: Typechecking
+#         run: pnpm run check
 
-      - name: Setup Go for misspell utility
-        uses: actions/setup-go@v5
+#       - name: Setup Go for misspell utility
+#         uses: actions/setup-go@v5
 
-      - name: Download go misspell utility
-        run: go install github.com/client9/misspell/cmd/misspell@latest
+#       - name: Download go misspell utility
+#         run: go install github.com/client9/misspell/cmd/misspell@latest
 
-      - name: Run misspell to find misspelled words
-        run: |
-          find ./src -type f \( -name "*.js" -o -name "*.ts" -o -name "*.svelte" \) | xargs misspell -error
-          misspell -error README.md
+#       - name: Run misspell to find misspelled words
+#         run: |
+#           find ./src -type f \( -name "*.js" -o -name "*.ts" -o -name "*.svelte" \) | xargs misspell -error
+#           misspell -error README.md

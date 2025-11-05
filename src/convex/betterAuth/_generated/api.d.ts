@@ -38,6 +38,7 @@ export type Mounts = {
         input:
           | {
               data: {
+                appRole?: null | string;
                 banExpires?: null | number;
                 banReason?: null | string;
                 banned?: null | boolean;
@@ -159,6 +160,7 @@ export type Mounts = {
                   | "banReason"
                   | "banExpires"
                   | "userType"
+                  | "appRole"
                   | "id";
                 operator?:
                   | "lt"
@@ -436,6 +438,7 @@ export type Mounts = {
                   | "banReason"
                   | "banExpires"
                   | "userType"
+                  | "appRole"
                   | "id";
                 operator?:
                   | "lt"
@@ -779,6 +782,7 @@ export type Mounts = {
           | {
               model: "user";
               update: {
+                appRole?: null | string;
                 banExpires?: null | number;
                 banReason?: null | string;
                 banned?: null | boolean;
@@ -807,6 +811,7 @@ export type Mounts = {
                   | "banReason"
                   | "banExpires"
                   | "userType"
+                  | "appRole"
                   | "id";
                 operator?:
                   | "lt"
@@ -1128,6 +1133,7 @@ export type Mounts = {
           | {
               model: "user";
               update: {
+                appRole?: null | string;
                 banExpires?: null | number;
                 banReason?: null | string;
                 banned?: null | boolean;
@@ -1156,6 +1162,7 @@ export type Mounts = {
                   | "banReason"
                   | "banExpires"
                   | "userType"
+                  | "appRole"
                   | "id";
                 operator?:
                   | "lt"

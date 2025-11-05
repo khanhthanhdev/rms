@@ -19,6 +19,7 @@ export const tables = {
     banReason: v.optional(v.union(v.null(), v.string())),
     banExpires: v.optional(v.union(v.null(), v.number())),
     userType: v.optional(v.union(v.null(), v.string())),
+    appRole: v.optional(v.union(v.null(), v.string())),
   })
     .index("email_name", ["email","name"])
     .index("name", ["name"])

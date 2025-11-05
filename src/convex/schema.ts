@@ -9,9 +9,10 @@ import { v } from 'convex/values';
  *
  * Key concepts:
  * - Teams act as the primary organizational unit (mapped to Better Auth "organizations")
- * - Role system managed by Better Auth:
+ * - Role system is stored in convex tables:
  *   1. Team roles: TEAM_MENTOR, TEAM_LEADER, TEAM_MEMBER, COMMON (scoped to teams via organization membership)
- *   2. Global roles: ADMIN (managed by Better Auth admin plugin)
+ *   2. Global roles: ADMIN, TSO, HEAD_REFEREE, SCORE_KEEPER, QUEUER (managed via org_user_roles table)
+ *   3. Baseline user roles: COMMON/TEAM_* assignments in user_roles
  * - Permissions are defined in auth.ts and enforced via Better Auth access control
  */
 
@@ -43,12 +44,62 @@ const schema = defineSchema({
 		isActive: v.optional(v.boolean()),
 		lastLoginAt: v.optional(v.number()),
 		location: v.optional(v.string()),
+		appRole: v.optional(
+			v.union(
+				v.literal('ADMIN'),
+				v.literal('TSO'),
+				v.literal('HEAD_REFEREE'),
+				v.literal('SCORE_KEEPER'),
+				v.literal('QUEUER'),
+				v.literal('TEAM_MENTOR'),
+				v.literal('TEAM_LEADER'),
+				v.literal('TEAM_MEMBER'),
+				v.literal('COMMON')
+			)
+		),
 		phone: v.optional(v.string()),
 		updatedAt: v.number(),
 		userType: v.optional(v.union(v.literal('REGULAR'), v.literal('ORG')))
 	})
 		.index('authId', ['authId'])
 		.index('email', ['email']),
+
+	/**
+	 * User roles - global role assignments decoupled from Better Auth's user.role column
+	 * Tracks baseline roles that apply outside of specific team memberships
+	 */
+	user_roles: defineTable({
+		user_id: v.id('users'),
+		role: v.union(
+			v.literal('TEAM_MENTOR'),
+			v.literal('TEAM_LEADER'),
+			v.literal('TEAM_MEMBER'),
+			v.literal('COMMON')
+		),
+		assigned_at: v.number(),
+		assigned_by: v.optional(v.id('users'))
+	})
+		.index('by_user', ['user_id'])
+		.index('by_user_role', ['user_id', 'role']),
+
+	/**
+	 * Organization-level roles - officiating and admin roles that apply globally
+	 */
+	org_user_roles: defineTable({
+		user_id: v.id('users'),
+		role: v.union(
+			v.literal('ADMIN'),
+			v.literal('TSO'),
+			v.literal('HEAD_REFEREE'),
+			v.literal('SCORE_KEEPER'),
+			v.literal('QUEUER')
+		),
+		assigned_at: v.number(),
+		assigned_by: v.optional(v.id('users'))
+	})
+		.index('by_user', ['user_id'])
+		.index('by_role', ['role'])
+		.index('by_user_role', ['user_id', 'role']),
 
 	// ==================== Team Management (Organization Plugin) ====================
 
