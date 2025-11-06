@@ -310,18 +310,24 @@ export const listTeams = query({
 		)
 	}),
 	handler: async (ctx, args) => {
-		const { appUser } = await requireAuthContext(ctx);
-		const memberships = await loadActiveMemberships(ctx, appUser._id);
+		const authContext = await loadAuthContext(ctx);
+		const appUser = authContext?.appUser ?? null;
+
+		const memberships: Awaited<ReturnType<typeof loadActiveMemberships>> = appUser
+			? await loadActiveMemberships(ctx, appUser._id)
+			: [];
 		const membershipMap = new Map<Id<'teams'>, TeamRole>();
 		for (const membership of memberships) {
 			membershipMap.set(membership.team_id, membership.role);
 		}
 
-		const age = calculateAge(appUser.dateOfBirth ?? null);
+		const age = appUser ? calculateAge(appUser.dateOfBirth ?? null) : null;
 		const holdsRestrictedRole = memberships.some(
 			(membership) => membership.role === 'TEAM_LEADER' || membership.role === 'TEAM_MEMBER'
 		);
-		const canCreateTeam = Boolean(age !== null && age >= 18 && !holdsRestrictedRole);
+		const canCreateTeam = Boolean(
+			appUser && age !== null && age >= 18 && !holdsRestrictedRole
+		);
 
 		const pageSize = Math.max(args.pageSize ?? 20, 1);
 		const page = Math.max(args.page ?? 1, 1);

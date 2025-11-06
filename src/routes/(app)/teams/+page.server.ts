@@ -1,8 +1,6 @@
-import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { api } from '$convex/_generated/api.js';
 import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
-import { env } from '$env/dynamic/private';
 
 const TEAM_STATUS_VALUES = ['DRAFT', 'ACTIVE', 'COMPLETED', 'ARCHIVED'] as const;
 const LIST_SORT_VALUES = ['recent', 'name_asc', 'name_desc'] as const;
@@ -15,25 +13,8 @@ const LIST_SORT_SET = new Set<ListSort>(LIST_SORT_VALUES);
 
 const TEAM_PAGE_SIZE = 20;
 
-export const load: PageServerLoad = async ({ cookies, locals, url }) => {
-	const convexUrl =
-		env.PUBLIC_CONVEX_URL ??
-		env.CONVEX_URL ??
-		env.VITE_PUBLIC_CONVEX_URL ??
-		process.env.PUBLIC_CONVEX_URL ??
-		process.env.CONVEX_URL ??
-		process.env.VITE_PUBLIC_CONVEX_URL ??
-		undefined;
-
-	if (!convexUrl) {
-		throw error(500, 'Convex URL is not configured');
-	}
-
-	const client = createConvexHttpClient({ cookies, convexUrl });
-
-	if (typeof locals.token === 'string' && locals.token.length > 0) {
-		client.setAuth(locals.token);
-	}
+export const load: PageServerLoad = async ({ url }) => {
+	const client = createConvexHttpClient({});
 
 	const parseStatus = (raw: string | null): TeamStatus | undefined => {
 		if (!raw) {
@@ -61,40 +42,32 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	const status = parseStatus(url.searchParams.get('status'));
 	const sort = parseSort(url.searchParams.get('sort')) ?? 'recent';
 
-	try {
-		const response = await client.query(api.teams.listTeams, {
-			page,
-			pageSize: TEAM_PAGE_SIZE,
-			search: searchParam.trim() || undefined,
-			location: locationParam.trim() || undefined,
-			status,
-			sort
-		});
+	const response = await client.query(api.teams.listTeams, {
+		page,
+		pageSize: TEAM_PAGE_SIZE,
+		search: searchParam.trim() || undefined,
+		location: locationParam.trim() || undefined,
+		status,
+		sort
+	});
 
-		return {
-			teams: response.teams,
-			pagination: {
-				page: response.page,
-				totalPages: response.totalPages,
-				total: response.total,
-				pageSize: response.pageSize,
-				hasMore: response.hasMore
-			},
-			filters: {
-				search: searchParam,
-				location: locationParam,
-				status: status ?? '',
-				sort
-			},
-			canCreateTeam: response.canCreateTeam,
-			statusOptions: TEAM_STATUS_VALUES,
-			sortOptions: LIST_SORT_VALUES
-		};
-	} catch (err) {
-		console.error('Failed to load teams', err);
-		if ((err as { status?: number }).status === 401) {
-			throw redirect(302, '/auth/sign-in');
-		}
-		throw error(500, 'Failed to load teams');
-	}
+	return {
+		teams: response.teams,
+		pagination: {
+			page: response.page,
+			totalPages: response.totalPages,
+			total: response.total,
+			pageSize: response.pageSize,
+			hasMore: response.hasMore
+		},
+		filters: {
+			search: searchParam,
+			location: locationParam,
+			status: status ?? '',
+			sort
+		},
+		canCreateTeam: response.canCreateTeam,
+		statusOptions: TEAM_STATUS_VALUES,
+		sortOptions: LIST_SORT_VALUES
+	};
 };
