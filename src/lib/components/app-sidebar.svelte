@@ -42,8 +42,8 @@
 		},
 
 		{
-			title: 'Team',
-			url: '#',
+			title: 'Teams',
+			url: '/teams',
 			icon: Users
 		},
 		{

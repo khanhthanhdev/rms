@@ -155,7 +155,7 @@ export const QUEUER = ac.newRole({
  * These define baseline permissions for team membership
  */
 export const TEAM_MENTOR = ac.newRole({
-	teams: ['update'],
+	teams: ['create', 'update'],
 	team_members: ['invite', 'remove', 'manage_roles'],
 	tournaments: ['participate', 'join', 'manage_participation', 'create', 'update', 'delete'],
 	matches: ['view', 'create', 'update'],
@@ -189,6 +189,7 @@ export const TEAM_MEMBER = ac.newRole({
  * Can view public tournament information
  */
 export const COMMON = ac.newRole({
+	teams: ['create'],
 	tournaments: ['view'],
 	matches: ['view'],
 	stages: ['view']

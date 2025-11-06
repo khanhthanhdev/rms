@@ -314,7 +314,8 @@ const schema = defineSchema({
 		updated_by: v.optional(v.id('users'))
 	})
 		.index('by_alliance_team', ['alliance_id', 'team_id'])
-		.index('by_alliance', ['alliance_id']),
+		.index('by_alliance', ['alliance_id'])
+		.index('by_team', ['team_id']),
 
 	// ==================== Scoring ====================
 
