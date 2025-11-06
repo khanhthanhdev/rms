@@ -19,6 +19,7 @@ import type * as lib_permissions from "../lib/permissions.js";
 import type * as seed from "../seed.js";
 import type * as storage from "../storage.js";
 import type * as teams from "../teams.js";
+import type * as tournaments from "../tournaments.js";
 import type * as users from "../users.js";
 
 import type {
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   storage: typeof storage;
   teams: typeof teams;
+  tournaments: typeof tournaments;
   users: typeof users;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

@@ -10,7 +10,8 @@
 		Box,
 		ChartLine,
 		Settings,
-		Users
+		Users,
+		Trophy
 	} from '@lucide/svelte';
 	import NavAdmin from './nav-admin.svelte';
 	import NavMain from './nav-main.svelte';
@@ -39,6 +40,11 @@
 			title: 'Dashboard',
 			url: '/dashboard',
 			icon: LayoutDashboard
+		},
+		{
+			title: 'Tournaments',
+			url: '/tournaments',
+			icon: Trophy
 		},
 
 		{

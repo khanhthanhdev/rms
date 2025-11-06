@@ -1,9 +1,9 @@
 import type { PageServerLoad } from './$types.js';
 import { api } from '$convex/_generated/api.js';
-import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
+import { createServerConvexClient } from '$lib/server/create-convex-client';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	const client = createConvexHttpClient({ cookies });
+	const client = createServerConvexClient({ cookies, token: null });
 
 	try {
 		const currentUser = await client.query(api.auth.getCurrentUser, {});

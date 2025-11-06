@@ -13,7 +13,7 @@ const resolveConvexUrl = () =>
 	undefined;
 
 export const createServerConvexClient = ({
-	cookies,
+	cookies: _cookies,
 	token
 }: {
 	cookies: Cookies;
@@ -25,11 +25,10 @@ export const createServerConvexClient = ({
 		throw error(500, 'Convex URL is not configured');
 	}
 
-	const client = createConvexHttpClient({ cookies, convexUrl });
-
-	if (token && token.length) {
-		client.setAuth(token);
-	}
+	const client = createConvexHttpClient({
+		convexUrl,
+		token: token ?? undefined
+	});
 
 	return client;
 };

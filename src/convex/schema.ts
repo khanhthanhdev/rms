@@ -198,12 +198,62 @@ const schema = defineSchema({
 		tournament_alliance_team_limit: v.number(),
 		tournament_code: v.string(),
 		tournament_description: v.optional(v.string()),
+		tournament_location: v.optional(v.string()),
 		tournament_name: v.string(),
 		tournament_owner_id: v.id('users'),
 		tournament_scoring_profile: v.optional(v.id('scoring_profiles')),
+		tournament_status: v.optional(
+			v.union(
+				v.literal('DRAFT'),
+				v.literal('PUBLISHED'),
+				v.literal('IN_PROGRESS'),
+				v.literal('COMPLETED'),
+				v.literal('CANCELLED')
+			)
+		),
+		tournament_visibility: v.optional(v.union(v.literal('PUBLIC'), v.literal('PRIVATE'))),
+		registration_deadline: v.optional(v.number()),
+		start_date: v.optional(v.number()),
+		end_date: v.optional(v.number()),
+		team_capacity: v.optional(v.number()),
 		updated_at: v.number(),
 		updated_by: v.optional(v.id('users'))
 	}).index('by_code', ['tournament_code']),
+
+	/**
+	 * Tournament announcements - admin updates and notifications
+	 */
+	tournament_announcements: defineTable({
+		created_at: v.number(),
+		created_by: v.optional(v.id('users')),
+		deleted_at: v.optional(v.number()),
+		is_published: v.boolean(),
+		message: v.string(),
+		title: v.string(),
+		tournament_id: v.id('tournaments'),
+		updated_at: v.number(),
+		updated_by: v.optional(v.id('users')),
+		published_at: v.optional(v.number())
+	})
+		.index('by_tournament', ['tournament_id'])
+		.index('by_tournament_published', ['tournament_id', 'is_published']),
+
+	/**
+	 * Tournament documents - resources linked to tournaments (manuals, policies, etc.)
+	 */
+	tournament_documents: defineTable({
+		category: v.optional(v.string()),
+		created_at: v.number(),
+		created_by: v.optional(v.id('users')),
+		deleted_at: v.optional(v.number()),
+		is_published: v.boolean(),
+		description: v.optional(v.string()),
+		link_url: v.string(),
+		title: v.string(),
+		tournament_id: v.id('tournaments'),
+		updated_at: v.number(),
+		updated_by: v.optional(v.id('users'))
+	}).index('by_tournament', ['tournament_id']),
 
 	/**
 	 * Team tournament participation - tracks which teams are registered for tournaments

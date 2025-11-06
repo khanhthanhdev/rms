@@ -1,14 +1,13 @@
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { api } from '$convex/_generated/api.js';
-import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
+import { createServerConvexClient } from '$lib/server/create-convex-client';
 
 export const load: LayoutServerLoad = async ({ cookies, locals }) => {
-	const client = createConvexHttpClient({ cookies });
-
-	if (typeof locals.token === 'string' && locals.token) {
-		client.setAuth(locals.token);
-	}
+	const client = createServerConvexClient({
+		cookies,
+		token: typeof locals.token === 'string' ? locals.token : null
+	});
 
 	const user = await client.query(api.auth.getCurrentUser, {});
 	if (!user) {

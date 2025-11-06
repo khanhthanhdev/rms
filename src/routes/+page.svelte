@@ -19,7 +19,8 @@
 	const to = {
 		signUp: resolve('/auth/sign-up'),
 		signIn: resolve('/auth/sign-in'),
-		dashboard: resolve('/dashboard')
+		dashboard: resolve('/dashboard'),
+		tournaments: resolve('/tournaments')
 	};
 </script>
 
@@ -42,10 +43,14 @@
 					STEM education. Compete with teams from across the nation and showcase your engineering
 					skills in exciting challenges.
 				</p>
-				<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-					<a href={to.signUp}><Button size="lg">Register Now</Button></a>
-				</div>
+			<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={to.signUp}><Button size="lg">Register Now</Button></a>
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={to.tournaments}>
+					<Button size="lg" variant="outline">Browse tournaments</Button>
+				</a>
+			</div>
 			</div>
 		</div>
 	</div>
