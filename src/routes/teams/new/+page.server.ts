@@ -1,7 +1,7 @@
 import { fail, redirect, error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { api } from '$convex/_generated/api.js';
-import { createServerConvexClient } from '$lib/server/create-convex-client';
+import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 import { z } from 'zod';
 
 const optionalDescriptionSchema = z.preprocess(
@@ -49,9 +49,9 @@ const TeamFormSchema = z.object({
 type TeamFormInput = z.infer<typeof TeamFormSchema>;
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
-	const client = createServerConvexClient({
+	const client = createConvexHttpClient({
 		cookies,
-		token: typeof locals.token === 'string' ? locals.token : null
+		token: typeof locals.token === 'string' ? locals.token : undefined
 	});
 
 	try {
@@ -106,9 +106,9 @@ const extractErrors = (result: z.SafeParseReturnType<TeamFormInput, TeamFormInpu
 
 export const actions: Actions = {
 	default: async ({ request, cookies, locals }) => {
-		const client = createServerConvexClient({
+		const client = createConvexHttpClient({
 			cookies,
-			token: typeof locals.token === 'string' ? locals.token : null
+			token: typeof locals.token === 'string' ? locals.token : undefined
 		});
 
 		const formData = await request.formData();

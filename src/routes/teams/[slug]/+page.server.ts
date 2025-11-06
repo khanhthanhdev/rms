@@ -1,7 +1,7 @@
 import { fail, redirect, error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { api } from '$convex/_generated/api.js';
-import { createServerConvexClient } from '$lib/server/create-convex-client';
+import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 import { z } from 'zod';
 
 const optionalDescriptionSchema = z.preprocess(
@@ -78,7 +78,7 @@ const extractErrors = <T>(result: z.SafeParseReturnType<T, T>) => {
 };
 
 export const load: PageServerLoad = async ({ params, cookies, locals, url }) => {
-	const client = createServerConvexClient({
+	const client = createConvexHttpClient({
 		cookies,
 		token: typeof locals.token === 'string' ? locals.token : null
 	});

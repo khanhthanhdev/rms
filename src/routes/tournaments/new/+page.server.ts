@@ -2,7 +2,7 @@ import { fail, redirect, error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { z } from 'zod';
 import { api } from '$convex/_generated/api.js';
-import { createServerConvexClient } from '$lib/server/create-convex-client';
+import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 
 const TOURNAMENT_STATUS_VALUES = ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
 const VISIBILITY_VALUES = ['PUBLIC', 'PRIVATE'] as const;
@@ -77,7 +77,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 		redirectToSignIn(url.pathname);
 	}
 
-	const client = createServerConvexClient({ cookies, token: locals.token });
+	const client = createConvexHttpClient({ cookies, token: locals.token });
 
 	try {
 		const currentUser = await client.query(api.auth.getCurrentUser, {});
@@ -110,7 +110,7 @@ export const actions: Actions = {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createServerConvexClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ cookies, token: locals.token });
 
 		const formData = await request.formData();
 		const rawInput = {

@@ -2,10 +2,10 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Id } from '$convex/_generated/dataModel';
 import { api } from '$convex/_generated/api.js';
-import { createServerConvexClient } from '$lib/server/create-convex-client';
+import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 
 export const load: PageServerLoad = async ({ params, cookies, locals }) => {
-	const client = createServerConvexClient({
+	const client = createConvexHttpClient({
 		cookies,
 		token: typeof locals.token === 'string' ? locals.token : null
 	});

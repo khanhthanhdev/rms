@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { api } from '$convex/_generated/api.js';
-import { createServerConvexClient } from '$lib/server/create-convex-client';
+import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 
 const PHASE_FILTER_VALUES = ['registration_open', 'upcoming', 'in_progress', 'completed'] as const;
 const SORT_VALUES = ['recent', 'start_asc', 'start_desc', 'name_asc', 'name_desc'] as const;
@@ -13,11 +13,8 @@ const SORT_SET = new Set(SORT_VALUES);
 
 const PAGE_SIZE = 10;
 
-export const load: PageServerLoad = async ({ url, cookies, locals }) => {
-	const client = createServerConvexClient({
-		cookies,
-		token: typeof locals.token === 'string' ? locals.token : null
-	});
+export const load: PageServerLoad = async ({ url }) => {
+	const client = createConvexHttpClient({});
 
 	const rawSearch = (url.searchParams.get('search') ?? '').trim();
 	const phaseParam = url.searchParams.get('phase');

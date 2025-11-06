@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import type { Id } from '$convex/_generated/dataModel';
 import { z } from 'zod';
 import { api } from '$convex/_generated/api.js';
-import { createServerConvexClient } from '$lib/server/create-convex-client';
+import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 
 const TOURNAMENT_STATUS_VALUES = ['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
 const VISIBILITY_VALUES = ['PUBLIC', 'PRIVATE'] as const;
@@ -120,7 +120,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals, url }) => 
 		redirectToSignIn(url.pathname);
 	}
 
-	const client = createServerConvexClient({ cookies, token: locals.token });
+	const client = createConvexHttpClient({ cookies, token: locals.token });
 	const tournamentId = params.id as Id<'tournaments'>;
 
 	try {
@@ -154,7 +154,7 @@ const handleUpdate = async ({
 	tournamentId
 }: {
 	request: Request;
-	client: ReturnType<typeof createServerConvexClient>;
+	client: ReturnType<typeof createConvexHttpClient>;
 	tournamentId: Id<'tournaments'>;
 }) => {
 	const formData = await request.formData();
@@ -233,7 +233,7 @@ const handleAnnouncementCreate = async ({
 	tournamentId
 }: {
 	request: Request;
-	client: ReturnType<typeof createServerConvexClient>;
+	client: ReturnType<typeof createConvexHttpClient>;
 	tournamentId: Id<'tournaments'>;
 }) => {
 	const formData = await request.formData();
@@ -284,7 +284,7 @@ const handleAnnouncementDelete = async ({
 	client
 }: {
 	request: Request;
-	client: ReturnType<typeof createServerConvexClient>;
+	client: ReturnType<typeof createConvexHttpClient>;
 }) => {
 	const formData = await request.formData();
 	const announcementId = (formData.get('announcementId') ?? '').toString();
@@ -321,7 +321,7 @@ const handleDocumentCreate = async ({
 	tournamentId
 }: {
 	request: Request;
-	client: ReturnType<typeof createServerConvexClient>;
+	client: ReturnType<typeof createConvexHttpClient>;
 	tournamentId: Id<'tournaments'>;
 }) => {
 	const formData = await request.formData();
@@ -378,7 +378,7 @@ const handleDocumentDelete = async ({
 	client
 }: {
 	request: Request;
-	client: ReturnType<typeof createServerConvexClient>;
+	client: ReturnType<typeof createConvexHttpClient>;
 }) => {
 	const formData = await request.formData();
 	const documentId = (formData.get('documentId') ?? '').toString();
@@ -415,7 +415,7 @@ export const actions: Actions = {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createServerConvexClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ cookies, token: locals.token });
 		return await handleUpdate({ request, client, tournamentId: params.id as Id<'tournaments'> });
 	},
 	addAnnouncement: async ({ request, params, cookies, locals, url }) => {
@@ -423,7 +423,7 @@ export const actions: Actions = {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createServerConvexClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ cookies, token: locals.token });
 		return await handleAnnouncementCreate({ request, client, tournamentId: params.id as Id<'tournaments'> });
 	},
 	deleteAnnouncement: async ({ request, cookies, locals, url }) => {
@@ -431,7 +431,7 @@ export const actions: Actions = {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createServerConvexClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ cookies, token: locals.token });
 		return await handleAnnouncementDelete({ request, client });
 	},
 	addDocument: async ({ request, params, cookies, locals, url }) => {
@@ -439,7 +439,7 @@ export const actions: Actions = {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createServerConvexClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ cookies, token: locals.token });
 		return await handleDocumentCreate({ request, client, tournamentId: params.id as Id<'tournaments'> });
 	},
 	deleteDocument: async ({ request, cookies, locals, url }) => {
@@ -447,7 +447,7 @@ export const actions: Actions = {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createServerConvexClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ cookies, token: locals.token });
 		return await handleDocumentDelete({ request, client });
 	}
 };
