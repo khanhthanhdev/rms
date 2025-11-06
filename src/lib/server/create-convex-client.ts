@@ -1,6 +1,5 @@
 import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 import type { Cookies } from '@sveltejs/kit';
-import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 const resolveConvexUrl = () =>
@@ -22,7 +21,9 @@ export const createServerConvexClient = ({
 	const convexUrl = resolveConvexUrl();
 
 	if (!convexUrl) {
-		throw error(500, 'Convex URL is not configured');
+		console.warn(
+			'createServerConvexClient: PUBLIC_CONVEX_URL (or equivalent) is not configured. Falling back to default client configuration.'
+		);
 	}
 
 	const client = createConvexHttpClient({ cookies, convexUrl });

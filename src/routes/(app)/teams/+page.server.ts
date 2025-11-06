@@ -1,8 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { api } from '$convex/_generated/api.js';
-import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
-import { env } from '$env/dynamic/private';
+import { createServerConvexClient } from '$lib/server/create-convex-client';
 
 const TEAM_STATUS_VALUES = ['DRAFT', 'ACTIVE', 'COMPLETED', 'ARCHIVED'] as const;
 const LIST_SORT_VALUES = ['recent', 'name_asc', 'name_desc'] as const;
@@ -16,33 +15,17 @@ const LIST_SORT_SET = new Set<ListSort>(LIST_SORT_VALUES);
 const TEAM_PAGE_SIZE = 20;
 
 export const load: PageServerLoad = async ({ cookies, locals, url }) => {
-	const convexUrl =
-		env.PUBLIC_CONVEX_URL ??
-		env.CONVEX_URL ??
-		env.VITE_PUBLIC_CONVEX_URL ??
-		process.env.PUBLIC_CONVEX_URL ??
-		process.env.CONVEX_URL ??
-		process.env.VITE_PUBLIC_CONVEX_URL ??
-		undefined;
-
-	if (!convexUrl) {
-		throw error(500, 'Convex URL is not configured');
-	}
-
-	const client = createConvexHttpClient({ cookies, convexUrl });
-
-	if (typeof locals.token === 'string' && locals.token.length > 0) {
-		client.setAuth(locals.token);
-	}
+	const client = createServerConvexClient({
+		cookies,
+		token: typeof locals.token === 'string' ? locals.token : null
+	});
 
 	const parseStatus = (raw: string | null): TeamStatus | undefined => {
 		if (!raw) {
 			return undefined;
 		}
 		const normalized = raw.trim().toUpperCase();
-		return TEAM_STATUS_SET.has(normalized as TeamStatus)
-			? (normalized as TeamStatus)
-			: undefined;
+		return TEAM_STATUS_SET.has(normalized as TeamStatus) ? (normalized as TeamStatus) : undefined;
 	};
 
 	const parseSort = (raw: string | null): ListSort | undefined => {
