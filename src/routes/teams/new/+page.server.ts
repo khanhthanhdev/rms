@@ -48,9 +48,9 @@ const TeamFormSchema = z.object({
 
 type TeamFormInput = z.infer<typeof TeamFormSchema>;
 
-export const load: PageServerLoad = async ({ cookies, locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	const client = createConvexHttpClient({
-		cookies,
+		
 		token: typeof locals.token === 'string' ? locals.token : undefined
 	});
 
@@ -105,9 +105,9 @@ const extractErrors = (result: z.SafeParseReturnType<TeamFormInput, TeamFormInpu
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, locals }) => {
+	default: async ({ request, locals }) => {
 		const client = createConvexHttpClient({
-			cookies,
+			
 			token: typeof locals.token === 'string' ? locals.token : undefined
 		});
 

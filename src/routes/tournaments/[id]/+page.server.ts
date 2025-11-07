@@ -4,10 +4,9 @@ import type { Id } from '$convex/_generated/dataModel';
 import { api } from '$convex/_generated/api.js';
 import { createConvexHttpClient } from '@mmailaender/convex-better-auth-svelte/sveltekit';
 
-export const load: PageServerLoad = async ({ params, cookies, locals }) => {
+export const load: PageServerLoad = async ({ params,  locals }) => {
 	const client = createConvexHttpClient({
-		cookies,
-		token: typeof locals.token === 'string' ? locals.token : null
+	token: typeof locals.token === 'string' ? locals.token : undefined
 	});
 
 	const tournamentId = params.id as Id<'tournaments'>;
@@ -30,13 +29,14 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 		);
 
 		return {
-			detail,
-			viewer: {
-				isAuthenticated,
-				isAdmin,
-				canEdit: detail.tournament.canEdit
-			}
-		};
+		detail,
+		viewer: {
+		isAuthenticated,
+		isAdmin,
+		canEdit: detail.tournament.canEdit,
+		 userTeams: detail.userTeams
+		 }
+ 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Unknown error';
 		if (message.includes('not found') || message.includes('not available')) {

@@ -77,14 +77,13 @@ const extractErrors = <T>(result: z.SafeParseReturnType<T, T>) => {
 	return fieldErrors;
 };
 
-export const load: PageServerLoad = async ({ params, cookies, locals, url }) => {
+export const load: PageServerLoad = async ({ params,  locals, url }) => {
 	const client = createConvexHttpClient({
-		cookies,
-		token: typeof locals.token === 'string' ? locals.token : null
+		token: typeof locals.token === 'string' ? locals.token : undefined
 	});
 
 	try {
-		const management = await client.query(api.teams.getTeamManagement, {
+		const management = await client.query(api.teams.getPublicTeam, {
 			teamNumber: params.slug
 		});
 
@@ -100,19 +99,16 @@ export const load: PageServerLoad = async ({ params, cookies, locals, url }) => 
 			}
 		};
 	} catch (err) {
-		console.error('Failed to load team management data', err);
-		if ((err as { status?: number }).status === 401) {
-			throw redirect(302, '/auth/sign-in');
-		}
-		throw error(500, 'Unable to load team management data');
+		console.error('Failed to load team data', err);
+		throw error(500, 'Unable to load team data');
 	}
 };
 
 export const actions: Actions = {
-	update: async ({ request, params, cookies, locals, url }) => {
-		const client = createServerConvexClient({
-			cookies,
-			token: typeof locals.token === 'string' ? locals.token : null
+	update: async ({ request, params,locals, url }) => {
+		const client = createConvexHttpClient({
+			
+			token: typeof locals.token === 'string' ? locals.token : undefined
 		});
 
 		const formData = await request.formData();
@@ -135,7 +131,7 @@ export const actions: Actions = {
 
 		let management;
 		try {
-			management = await client.query(api.teams.getTeamManagement, {
+			management = await client.query(api.teams.getPublicTeam, {
 				teamNumber: params.slug
 			});
 		} catch (err) {
@@ -195,10 +191,10 @@ export const actions: Actions = {
 		throw redirect(303, `${url.pathname}?updated=1`);
 	},
 
-	invite: async ({ request, params, cookies, locals, url }) => {
-		const client = createServerConvexClient({
-			cookies,
-			token: typeof locals.token === 'string' ? locals.token : null
+	invite: async ({ request, params,  locals, url }) => {
+		const client = createConvexHttpClient({
+			
+			token: typeof locals.token === 'string' ? locals.token : undefined
 		});
 
 		const formData = await request.formData();
@@ -219,7 +215,7 @@ export const actions: Actions = {
 
 		let management;
 		try {
-			management = await client.query(api.teams.getTeamManagement, {
+			management = await client.query(api.teams.getPublicTeam, {
 				teamNumber: params.slug
 			});
 		} catch (err) {

@@ -1,10 +1,5 @@
 import { v } from 'convex/values';
-import {
-	mutation,
-	query,
-	type MutationCtx,
-	type QueryCtx
-} from './_generated/server';
+import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { authComponent } from './auth';
 import { hasPermission, requirePermission, type PermissionScope } from './lib/permissions';
@@ -21,12 +16,7 @@ const TOURNAMENT_VISIBILITY_VALUES = ['PUBLIC', 'PRIVATE'] as const;
 
 const LIST_SORT_VALUES = ['recent', 'start_asc', 'start_desc', 'name_asc', 'name_desc'] as const;
 
-const PHASE_FILTER_VALUES = [
-	'registration_open',
-	'upcoming',
-	'in_progress',
-	'completed'
-] as const;
+const PHASE_FILTER_VALUES = ['registration_open', 'upcoming', 'in_progress', 'completed'] as const;
 
 const teamRoleValidator = v.union(
 	v.literal('TEAM_MENTOR'),
@@ -52,12 +42,7 @@ type TournamentVisibility = (typeof TOURNAMENT_VISIBILITY_VALUES)[number];
 type ListSort = (typeof LIST_SORT_VALUES)[number];
 type PhaseFilter = (typeof PHASE_FILTER_VALUES)[number];
 
-type DerivedPhase =
-	| 'REGISTRATION_OPEN'
-	| 'UPCOMING'
-	| 'IN_PROGRESS'
-	| 'COMPLETED'
-	| 'CLOSED';
+type DerivedPhase = 'REGISTRATION_OPEN' | 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED';
 
 interface AuthContext {
 	appUser: {
@@ -67,9 +52,7 @@ interface AuthContext {
 	};
 }
 
-const loadAuthContext = async (
-	ctx: QueryCtx | MutationCtx
-): Promise<AuthContext | null> => {
+const loadAuthContext = async (ctx: QueryCtx | MutationCtx): Promise<AuthContext | null> => {
 	const betterAuthUser = await authComponent.getAuthUser(ctx).catch(() => null);
 	if (!betterAuthUser) {
 		return null;
@@ -333,7 +316,9 @@ export const listPublicTournaments = query({
 				return b.tournament_name.localeCompare(a.tournament_name);
 			}
 			if (sortMode === 'start_asc') {
-				return (a.start_date ?? Number.MAX_SAFE_INTEGER) - (b.start_date ?? Number.MAX_SAFE_INTEGER);
+				return (
+					(a.start_date ?? Number.MAX_SAFE_INTEGER) - (b.start_date ?? Number.MAX_SAFE_INTEGER)
+				);
 			}
 			if (sortMode === 'start_desc') {
 				return (b.start_date ?? 0) - (a.start_date ?? 0);
@@ -472,6 +457,15 @@ export const getPublicTournament = query({
 			createdAt: v.number(),
 			updatedAt: v.number()
 		}),
+		userTeams: v.array(
+			v.object({
+				id: v.id('teams'),
+				teamName: v.string(),
+				teamNumber: v.string(),
+				role: teamRoleValidator,
+				isActive: v.boolean()
+			})
+		),
 		announcements: v.array(
 			v.object({
 				id: v.id('tournament_announcements'),
@@ -512,7 +506,12 @@ export const getPublicTournament = query({
 		const registrationCount = await countActiveRegistrations(ctx, tournament._id);
 		const phase = derivePhase(tournament);
 		const canEdit = appUser
-			? await hasPermission(ctx, appUser._id, 'tournaments.update', toTournamentScope(tournament._id))
+			? await hasPermission(
+					ctx,
+					appUser._id,
+					'tournaments.update',
+					toTournamentScope(tournament._id)
+				)
 			: false;
 
 		const rawAnnouncements = await ctx.db
@@ -591,6 +590,45 @@ export const getPublicTournament = query({
 				return entry;
 			});
 
+		// Load user's registered teams for this tournament
+		const userTeams = appUser
+			? await ctx.db
+					.query('team_tournament_participation')
+					.withIndex('by_tournament', (q) => q.eq('tournament_id', tournament._id))
+					.collect()
+					.then((participations) => {
+						const activeParticipations = participations.filter(
+							(p) => !p.deleted_at && p.is_active && p.team_id
+						);
+						return Promise.all(
+							activeParticipations.map(async (participation) => {
+								const team = await ctx.db.get(participation.team_id);
+								if (!team || team.deleted_at) {
+									return null;
+								}
+								const membership = await ctx.db
+									.query('team_members')
+									.withIndex('by_team_user', (q) =>
+										q.eq('team_id', team._id).eq('user_id', appUser._id)
+									)
+									.filter((q) => q.eq(q.field('is_active'), true))
+									.unique();
+								if (!membership) {
+									return null;
+								}
+								return {
+									id: team._id,
+									teamName: team.team_name,
+									teamNumber: team.team_number,
+									role: membership.role,
+									isActive: membership.is_active
+								};
+							})
+						);
+					})
+					.then((teams) => teams.filter((team): team is NonNullable<typeof team> => team !== null))
+			: [];
+
 		const tournamentResponse: {
 			id: Id<'tournaments'>;
 			name: string;
@@ -650,6 +688,7 @@ export const getPublicTournament = query({
 
 		return {
 			tournament: tournamentResponse,
+			userTeams,
 			announcements,
 			documents
 		};
@@ -872,7 +911,10 @@ export const registerTeam = mutation({
 			participationInsert.robot_description = robotDescription;
 		}
 
-		const participationId = await ctx.db.insert('team_tournament_participation', participationInsert);
+		const participationId = await ctx.db.insert(
+			'team_tournament_participation',
+			participationInsert
+		);
 
 		return {
 			success: true,
@@ -1014,9 +1056,7 @@ export const updateTournament = mutation({
 			.collect();
 
 		if (
-			existingByCode.some(
-				(existing) => existing._id !== tournament._id && !existing.deleted_at
-			)
+			existingByCode.some((existing) => existing._id !== tournament._id && !existing.deleted_at)
 		) {
 			throw new Error('Another tournament uses this code');
 		}

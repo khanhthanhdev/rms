@@ -174,7 +174,6 @@ export const createTeam = mutation({
 		}
 
 		// 3. Determine creator's role based on age
-		const currentTime = Date.now();
 
 		if (!appUser.dateOfBirth) {
 			throw new Error('Date of birth is required to create a team');
@@ -321,13 +320,9 @@ export const listTeams = query({
 			membershipMap.set(membership.team_id, membership.role);
 		}
 
-		const age = appUser ? calculateAge(appUser.dateOfBirth ?? null) : null;
-		const holdsRestrictedRole = memberships.some(
-			(membership) => membership.role === 'TEAM_LEADER' || membership.role === 'TEAM_MEMBER'
-		);
-		const canCreateTeam = Boolean(
-			appUser && age !== null && age >= 18 && !holdsRestrictedRole
-		);
+		const canCreateTeam = appUser
+			? await hasPermission(ctx, appUser._id, 'teams.create')
+			: false;
 
 		const pageSize = Math.max(args.pageSize ?? 20, 1);
 		const page = Math.max(args.page ?? 1, 1);
@@ -421,6 +416,250 @@ export const listTeams = query({
 			hasMore: offset + pageSize < total,
 			canCreateTeam,
 			teams: responseTeams
+		};
+	}
+});
+
+export const getPublicTeam = query({
+	args: {
+		teamNumber: v.string()
+	},
+	returns: v.object({
+		team: v.object({
+			id: v.id('teams'),
+			teamName: v.string(),
+			teamNumber: v.string(),
+			location: v.string(),
+			status: teamStatusValidator,
+			description: v.optional(v.string()),
+			avatarUrl: v.optional(v.string()),
+			maxMembers: v.number(),
+			createdAt: v.number(),
+			updatedAt: v.number()
+		}),
+		membership: v.optional(
+			v.object({
+				role: teamRoleValidator,
+				isMentor: v.boolean()
+			})
+		),
+		permissions: v.object({
+			canUpdate: v.boolean(),
+			canInvite: v.boolean(),
+			canManageMembers: v.boolean()
+		}),
+		members: v.array(
+			v.object({
+				id: v.id('team_members'),
+				userId: v.id('users'),
+				fullName: v.optional(v.string()),
+				email: v.string(),
+				role: teamRoleValidator,
+				isActive: v.boolean(),
+				joinedAt: v.number()
+			})
+		),
+		invitations: v.array(
+			v.object({
+				id: v.id('team_invitations'),
+				invitedUserId: v.id('users'),
+				invitedEmail: v.string(),
+				role: teamRoleValidator,
+				status: invitationStatusValidator,
+				expiresAt: v.number(),
+				createdAt: v.number()
+			})
+		),
+		upcomingMatches: v.array(
+			v.object({
+				matchId: v.id('matches'),
+				matchCode: v.string(),
+				status: matchStatusValidator,
+				startTime: v.optional(v.number()),
+				stageId: v.optional(v.id('stages')),
+				fieldId: v.optional(v.id('fields'))
+			})
+		),
+		notifications: v.array(
+			v.object({
+				id: v.string(),
+				type: notificationTypeValidator,
+				message: v.string(),
+				createdAt: v.number()
+			})
+		)
+	}),
+	handler: async (ctx, args) => {
+		const authContext = await loadAuthContext(ctx);
+		const appUser = authContext?.appUser ?? null;
+
+		const team = await ctx.db
+			.query('teams')
+			.withIndex('by_team_number', (q) => q.eq('team_number', args.teamNumber))
+			.unique();
+
+		if (!team || team.deleted_at) {
+			throw new Error('Team not found');
+		}
+
+		let membership = undefined;
+		if (appUser) {
+			const membershipRecord = await ctx.db
+				.query('team_members')
+				.withIndex('by_team_user', (q) => q.eq('team_id', team._id).eq('user_id', appUser._id))
+				.filter((q) => q.eq(q.field('is_active'), true))
+				.unique();
+
+			if (membershipRecord) {
+				membership = {
+					role: membershipRecord.role,
+					isMentor: membershipRecord.role === 'TEAM_MENTOR'
+				};
+			}
+		}
+
+		const canUpdate = appUser
+			? await hasPermission(ctx, appUser._id, 'teams.update', { teamId: team._id })
+			: false;
+
+		const canManageMembers = Boolean(membership?.role === 'TEAM_MENTOR');
+
+		const membersDocs = await ctx.db
+			.query('team_members')
+			.withIndex('by_team_user', (q) => q.eq('team_id', team._id))
+			.collect();
+
+		const activeMembers = membersDocs.filter((doc) => doc.is_active);
+
+		const members = [];
+		for (const member of activeMembers) {
+			const user = await ctx.db.get(member.user_id);
+			if (!user) {
+				continue;
+			}
+
+			members.push({
+				id: member._id,
+				userId: member.user_id,
+				fullName: user.fullName ?? user.email,
+				email: user.email,
+				role: member.role,
+				isActive: member.is_active,
+				joinedAt: member.joined_at
+			});
+		}
+
+		const invites = await ctx.db
+			.query('team_invitations')
+			.withIndex('by_team', (q) => q.eq('team_id', team._id))
+			.collect();
+
+		const invitations = [];
+		for (const invitation of invites) {
+			const invitedUser = await ctx.db.get(invitation.invited_user_id);
+			if (!invitedUser) {
+				continue;
+			}
+
+			invitations.push({
+				id: invitation._id,
+				invitedUserId: invitation.invited_user_id,
+				invitedEmail: invitedUser.email,
+				role: invitation.invited_role,
+				status: invitation.status,
+				expiresAt: invitation.expires_at,
+				createdAt: invitation.created_at
+			});
+		}
+
+		const allianceMemberships = await ctx.db
+			.query('team_alliance_members')
+			.withIndex('by_team', (q) => q.eq('team_id', team._id))
+			.collect();
+
+		const upcomingMatches = [];
+		for (const allianceMember of allianceMemberships) {
+			const alliance = await ctx.db.get(allianceMember.alliance_id);
+			if (!alliance) {
+				continue;
+			}
+
+			const match = await ctx.db.get(alliance.alliance_match);
+			if (!match) {
+				continue;
+			}
+
+			if (match.deleted_at) {
+				continue;
+			}
+
+			if (match.match_status === 'COMPLETED' || match.match_status === 'CANCELLED') {
+				continue;
+			}
+
+			upcomingMatches.push({
+				matchId: match._id,
+				matchCode: match.match_code,
+				status: match.match_status,
+				startTime: match.match_start_time ?? undefined,
+				stageId: match.match_stage,
+				fieldId: match.match_field
+			});
+		}
+
+		upcomingMatches.sort((a, b) => {
+			const aTime = a.startTime ?? Number.MAX_SAFE_INTEGER;
+			const bTime = b.startTime ?? Number.MAX_SAFE_INTEGER;
+			return aTime - bTime;
+		});
+
+		const notifications = [];
+
+		for (const match of upcomingMatches.slice(0, 5)) {
+			notifications.push({
+				id: `match-${match.matchId}`,
+				type: 'MATCH' as const,
+				message: `Match ${match.matchCode} is scheduled soon.`,
+				createdAt: match.startTime ?? Date.now()
+			});
+		}
+
+		for (const invitation of invitations) {
+			if (invitation.status === 'PENDING') {
+				notifications.push({
+					id: `invite-${invitation.id}`,
+					type: 'INVITE' as const,
+					message: `${invitation.invitedEmail} has a pending invitation as ${invitation.role
+						.toLowerCase()
+						.replace('_', ' ')}.`,
+					createdAt: invitation.createdAt
+				});
+			}
+		}
+
+		return {
+			team: {
+				id: team._id,
+				teamName: team.team_name,
+				teamNumber: team.team_number,
+				location: team.location,
+				status: team.status,
+				description: team.team_descriptions ?? undefined,
+				avatarUrl: team.team_image_url ?? undefined,
+				maxMembers: team.max_members,
+				createdAt: team.created_at,
+				updatedAt: team.updated_at
+			},
+			membership,
+			permissions: {
+				canUpdate,
+				canInvite: canManageMembers,
+				canManageMembers: canManageMembers
+			},
+			members,
+			invitations,
+			upcomingMatches: upcomingMatches.slice(0, 5),
+			notifications
 		};
 	}
 });

@@ -105,12 +105,12 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, locals, url }) => {
+	default: async ({ request,  locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ token: locals.token });
 
 		const formData = await request.formData();
 		const rawInput = {

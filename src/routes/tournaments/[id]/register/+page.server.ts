@@ -29,12 +29,12 @@ const redirectToSignIn = (pathname: string) => {
 	throw redirect(302, `/auth/sign-in?redirectTo=${encodeURIComponent(pathname)}`);
 };
 
-export const load: PageServerLoad = async ({ params, cookies, locals, url }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (typeof locals.token !== 'string' || !locals.token) {
 		redirectToSignIn(url.pathname);
 	}
 
-	const client = createConvexHttpClient({ cookies, token: locals.token });
+	const client = createConvexHttpClient({ token: locals.token });
 
 	try {
 		const context = await client.query(api.tournaments.getTournamentRegistrationContext, {
@@ -60,12 +60,12 @@ export const load: PageServerLoad = async ({ params, cookies, locals, url }) => 
 };
 
 export const actions: Actions = {
-	default: async ({ request, params, cookies, locals, url }) => {
+	default: async ({ request, params,  locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ token: locals.token });
 
 		const formData = await request.formData();
 		const rawInput = {
@@ -107,6 +107,6 @@ export const actions: Actions = {
 			});
 		}
 
-		throw redirect(303, `/tournaments/${params.id}`);
+		throw redirect(303, '/home');
 	}
 };

@@ -37,8 +37,8 @@
 
 	const navMainData = [
 		{
-			title: 'Dashboard',
-			url: '/dashboard',
+			title: 'Trang chủ',
+			url: '/home',
 			icon: LayoutDashboard
 		},
 		{

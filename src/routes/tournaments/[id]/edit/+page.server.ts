@@ -115,12 +115,12 @@ const redirectToSignIn = (pathname: string) => {
 	throw redirect(302, `/auth/sign-in?redirectTo=${encodeURIComponent(pathname)}`);
 };
 
-export const load: PageServerLoad = async ({ params, cookies, locals, url }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (typeof locals.token !== 'string' || !locals.token) {
 		redirectToSignIn(url.pathname);
 	}
 
-	const client = createConvexHttpClient({ cookies, token: locals.token });
+	const client = createConvexHttpClient({ token: locals.token });
 	const tournamentId = params.id as Id<'tournaments'>;
 
 	try {
@@ -410,44 +410,44 @@ const handleDocumentDelete = async ({
 };
 
 export const actions: Actions = {
-	update: async ({ request, params, cookies, locals, url }) => {
+	update: async ({ request, params, locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ token: locals.token });
 		return await handleUpdate({ request, client, tournamentId: params.id as Id<'tournaments'> });
 	},
-	addAnnouncement: async ({ request, params, cookies, locals, url }) => {
+	addAnnouncement: async ({ request, params,  locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({  token: locals.token });
 		return await handleAnnouncementCreate({ request, client, tournamentId: params.id as Id<'tournaments'> });
 	},
-	deleteAnnouncement: async ({ request, cookies, locals, url }) => {
+	deleteAnnouncement: async ({ request,  locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({  token: locals.token });
 		return await handleAnnouncementDelete({ request, client });
 	},
-	addDocument: async ({ request, params, cookies, locals, url }) => {
+	addDocument: async ({ request, params,  locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({  token: locals.token });
 		return await handleDocumentCreate({ request, client, tournamentId: params.id as Id<'tournaments'> });
 	},
-	deleteDocument: async ({ request, cookies, locals, url }) => {
+	deleteDocument: async ({ request,  locals, url }) => {
 		if (typeof locals.token !== 'string' || !locals.token) {
 			redirectToSignIn(url.pathname);
 		}
 
-		const client = createConvexHttpClient({ cookies, token: locals.token });
+		const client = createConvexHttpClient({ token: locals.token });
 		return await handleDocumentDelete({ request, client });
 	}
 };

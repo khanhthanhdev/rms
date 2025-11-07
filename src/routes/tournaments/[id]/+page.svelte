@@ -9,15 +9,22 @@
 
 	const { data }: { data: PageData } = $props();
 	const { detail, viewer } = data;
-	const { tournament, announcements, documents } = detail;
+	const { tournament, announcements, documents, userTeams } = detail;
 
 	let now = $state(Date.now());
 	let interval: ReturnType<typeof setInterval> | null = null;
 
 	const phaseLabel = tournament.phase
-		.split('_')
-		.map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-		.join(' ');
+	.split('_')
+	.map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+	.join(' ');
+
+ 	const formatLabel = (value: string) =>
+ 		value
+ 			.toLowerCase()
+ 			.split('_')
+ 			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+ 			.join(' ');
 
 	const phaseVariant = (() => {
 		if (tournament.phase === 'REGISTRATION_OPEN') return 'default';
@@ -38,7 +45,7 @@
 	};
 
 	const formatRelative = (timestamp?: number) => {
-		if (!timestamp) {
+		if (!timestamp || timestamp <= 0) {
 			return 'Not scheduled';
 		}
 		const diffMs = timestamp - now;
@@ -62,8 +69,8 @@
 	};
 
 	const countdownLabel = $derived(() => {
-		if (!tournament.startDate) {
-			return 'Start date not set';
+		if (!tournament.startDate || tournament.startDate <= 0) {
+			return 'TBD';
 		}
 		const diff = tournament.startDate - now;
 		if (diff > 0) {
@@ -128,7 +135,37 @@
 		</div>
 	</header>
 
-	<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+	{#if viewer.isAuthenticated && userTeams.length > 0}
+ 		<Card.Root>
+ 			<Card.Header>
+ 				<Card.Title>Your Teams</Card.Title>
+ 				<Card.Description>Manage your teams participating in this tournament.</Card.Description>
+ 			</Card.Header>
+ 			<Card.Content class="space-y-4">
+ 				{#each userTeams as team}
+ 					<div class="flex items-center justify-between p-4 border rounded-lg">
+ 						<div class="flex items-center gap-3">
+ 							<div class="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+ 								<Trophy class="size-5 text-primary" />
+ 							</div>
+ 							<div>
+ 								<p class="font-medium">{team.teamName}</p>
+ 								<p class="text-sm text-muted-foreground">#{team.teamNumber} • {formatLabel(team.role)}</p>
+ 							</div>
+ 						</div>
+ 						<div class="flex items-center gap-2">
+ 							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+ 							<a href={resolve(`/teams/${team.teamNumber}`)}>
+ 								<Button variant="outline" size="sm">Manage Team</Button>
+ 							</a>
+ 						</div>
+ 					</div>
+ 				{/each}
+ 			</Card.Content>
+ 		</Card.Root>
+ 	{/if}
+
+ 	<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 		<Card.Root>
 			<Card.Content class="flex items-center gap-3 py-4">
 				<Trophy class="size-10 rounded-lg bg-primary/10 p-2 text-primary" />
